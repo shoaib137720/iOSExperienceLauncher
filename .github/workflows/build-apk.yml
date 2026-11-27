@@ -24,8 +24,7 @@ jobs:
           gradle-version: '8.9'
 
       - name: Extract Android project ZIP
-        run: |
-          unzip iOSExperienceLauncher_cloudbuild.zip -d project
+        run: |ZIP_FILE=$(find . -maxdepth 1 -name '*.zip' -print -quit); unzip "$ZIP_FILE" -d project
 
       - name: Build APK
         run: |

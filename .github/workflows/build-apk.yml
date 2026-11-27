@@ -1,8 +1,13 @@
-
 name: Build Android APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -23,35 +28,18 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Find and extract project ZIP
+      - name: Extract project ZIP
         run: |
-          ZIP_FILE=$(find . -maxdepth 1 -name '*.zip' -print -quit)
-          if [ -z "$ZIP_FILE" ]; then
-            echo "Project ZIP not found"
-            exit 1
-          fi
-          mkdir -p project
-          unzip "$ZIP_FILE" -d project
-
-      - name: Locate Android project
-        run: |
-          find project -name settings.gradle -o -name settings.gradle.kts
+          ZIP_FILE=$(find . -maxdepth 1 -name '*.zip' | head -n 1)
+          test -n "$ZIP_FILE"
+          unzip -o "$ZIP_FILE" -d project
 
       - name: Build APK
-        run: |
-          PROJECT_DIR=$(find project -name settings.gradle -printf '%h\n' -quit)
-          if [ -z "$PROJECT_DIR" ]; then
-            echo "Android Gradle project not found"
-            exit 1
-          fi
-          cd "$PROJECT_DIR"
-          gradle assembleDebug
+        run: gradle -p project/iOSLauncher assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: iOS-Experience-Launcher-APK
-          path: project/**/app/build/outputs/apk/debug/app-debug.apk
+          path: project/iOSLauncher/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-
-

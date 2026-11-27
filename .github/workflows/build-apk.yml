@@ -7,6 +7,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,20 +23,35 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Extract Android project ZIP
+      - name: Find and extract project ZIP
         run: |
           ZIP_FILE=$(find . -maxdepth 1 -name '*.zip' -print -quit)
-          test -n "$ZIP_FILE"
+          if [ -z "$ZIP_FILE" ]; then
+            echo "Project ZIP not found"
+            exit 1
+          fi
+          mkdir -p project
           unzip "$ZIP_FILE" -d project
+
+      - name: Locate Android project
+        run: |
+          find project -name settings.gradle -o -name settings.gradle.kts
 
       - name: Build APK
         run: |
-          cd project/iOSLauncher
+          PROJECT_DIR=$(find project -name settings.gradle -printf '%h\n' -quit)
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "Android Gradle project not found"
+            exit 1
+          fi
+          cd "$PROJECT_DIR"
           gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: iOS-Experience-Launcher-APK
-          path: project/iOSLauncher/app/build/outputs/apk/debug/app-debug.apk
+          path: project/**/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
 
